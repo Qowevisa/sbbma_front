@@ -1,0 +1,19 @@
+{
+  "name": "metacoinelectron",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^29.1.6"
+  },
+  "dependencies": {
+    "ethers": "^6.11.1",
+    "web3": "^4.7.0"
+  }
+}
