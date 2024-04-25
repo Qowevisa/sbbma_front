@@ -10,19 +10,35 @@
 
 <body>
   <h1 id="address-header">Connecting...</h1>
-  <!-- <p>Current theme source: <strong id="theme-source">System</strong></p> -->
-  <!-- <button id="toggle-dark-mode">Toggle Dark Mode</button> -->
-  <!-- <button id="reset-to-system">Reset to System Theme</button> -->
-  <div class="handshake-initiate">
-    <input id="recipientAddress" type="text" placeholder="Recipient Address">
-    <button id="main-handshake-initBtn"> Initiate Handshake </button>
+  <!-- Updated structure with section dividers and headlines -->
+  <div class="section">
+    <div class="section-headline">Connection Setup</div>
+    <div class="handshake-initiate">
+      <input id="recipientAddress" type="text" placeholder="Recipient Address">
+      <button id="main-handshake-initBtn">Initiate Handshake</button>
+    </div>
   </div>
-  <ul id="potential-connections"></ul>
-  <div id="established-connections"></div>
-  <div id="messages"></div>
+
+  <div class="section">
+    <div class="section-headline">Potential Connections</div>
+    <ul id="potential-connections"></ul>
+  </div>
+
+  <div class="section">
+    <div class="section-headline">Established Connections</div>
+    <div id="established-connections"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-headline">Messages</div>
+    <div id="messages">
+      <!-- Placeholder for dynamic message management buttons -->
+      <div class="message-action-buttons"></div>
+      <!-- Message input and display will be dynamically added -->
+    </div>
+  </div>
 
   <script src="renderer.js"></script>
-</body>
 </body>
 
 </html>

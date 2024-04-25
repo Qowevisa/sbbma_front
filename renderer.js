@@ -15,12 +15,30 @@ window.api.onHandshakeInitEvent((_, data) => {
   potentialConnectionsElement.appendChild(li);
 })
 
+function addButtonForMessageBox(address) {
+  const buttonContainer = document.querySelector('.message-action-buttons');
+  if (!buttonContainer.querySelector(`[data-address='${address}']`)) {
+    const button = document.createElement('button');
+    button.textContent = `Chat with ${address}`;
+    button.dataset.address = address;
+    button.onclick = () => {
+      window.api.selectMessageBox(address);
+    };
+    buttonContainer.appendChild(button);
+  }
+}
+
 window.api.onHandshakeAcceptEvent((_, data) => {
   console.log("onHandshakeAcceptEvent = ", data)
   const establishedConnectionsElement = document.getElementById('established-connections');
   const li = document.createElement('li');
   li.textContent = `Connection with ${data.recipient} established.`;
   establishedConnectionsElement.appendChild(li);
+  addButtonForMessageBox(data.recipient)
+})
+
+window.api.debugSecret((_, secret) => {
+  console.log("Shared secret = ", secret)
 })
 
 window.api.updateUIAcceptHandshake((_, address) => {
@@ -36,6 +54,34 @@ window.api.updateUIAcceptHandshake((_, address) => {
       child.remove();
     }
   });
+  addButtonForMessageBox(address)
+})
+
+window.api.updateUIMessageAppend((_, obj) => {
+  const address = obj.address
+  const fromOtherSide = obj.fromOtherSide
+  const message = obj.message
+  const messageDisplay = document.querySelector(`#messages-${address}`);
+  if (messageDisplay) {
+    const messageElement = document.createElement('div');
+    messageElement.classList.add(fromOtherSide ? 'recipient-message' : 'my-message');
+    messageElement.textContent = message;
+    messageDisplay.appendChild(messageElement);
+  }
+})
+
+window.api.updateUISetupMessageBox((_, address) => {
+  const messagesContainer = document.getElementById('messages');
+  // Clear existing content or manage multiple message boxes based on your app design
+  messagesContainer.innerHTML = `<div class="message-display" id="messages-${address}"></div>
+                                 <input type="text" id="message-input-${address}" placeholder="Type a message..." />
+                                 <button id="send-message-${address}">Send</button>`;
+  document.getElementById(`send-message-${address}`).onclick = () => {
+    const inputElement = document.getElementById(`message-input-${address}`);
+    const message = inputElement.value;
+    window.api.sendMessage(message)
+    inputElement.value = '';
+  };
 })
 
 document.getElementById('main-handshake-initBtn').addEventListener('click', async () => {

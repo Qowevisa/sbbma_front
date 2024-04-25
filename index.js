@@ -1,19 +1,25 @@
 const { app, BrowserWindow, ipcMain, nativeTheme } = require('electron/main')
 const path = require('node:path')
 const { Web3 } = require('web3');
-const { getHandshakeContract } = require('./contracts');
-const HandshakeListener = require('./listener')
+const { getHandshakeContract, getMessageContract } = require('./contracts');
+const { HandshakeListener, MessageListener } = require('./listener')
+const { encryptMessage, decryptMessage } = require('./encryption')
 const crypto = require("crypto")
 
 const curve = crypto.createECDH('secp521r1');
 const ganacheURL = "ws://127.0.0.1:8545"
 const web3 = new Web3(ganacheURL)
 const { abi: handshakeContractABI, address: handshakeContractAddress } = getHandshakeContract()
+const { abi: messageContractABI, address: messageContractAddress } = getMessageContract()
 const handshakeContract = new web3.eth.Contract(handshakeContractABI, handshakeContractAddress);
-let listener = null
+const messageContract = new web3.eth.Contract(messageContractABI, messageContractAddress);
+let handshakeListener = null
+let messageListener = null
 let keyPair = null;
 let connections = new Map();
 let handshakes = new Map();
+let messages = new Map();
+let selectedAddress = null;
 let sharedSecret = null;
 
 let connectingPopup = null;
@@ -56,7 +62,7 @@ function createWindow() {
     }
   })
   mainWindow.loadFile('index.html')
-  // mainWindow.webContents.openDevTools();
+  mainWindow.webContents.openDevTools();
 }
 
 ipcMain.handle('web3:connect', (event, address) => {
@@ -71,8 +77,8 @@ ipcMain.handle('web3:connect', (event, address) => {
   console.log("connectedAddress = ", connectedAddress)
   mainWindow.webContents.send('update-address', connectedAddress.Address);
   //
-  listener = new HandshakeListener(handshakeContract, connectedAddress.Address);
-  listener.on('initiated', (data) => {
+  handshakeListener = new HandshakeListener(handshakeContract, connectedAddress.Address);
+  handshakeListener.on('initiated', (data) => {
     // Bob part : 2
     // calculating shared secret under connections will be under acceptConnection function
     const otherKeyWithoutPrefix = stripHexPrefix(data.publicKeyInitiator)
@@ -83,7 +89,7 @@ ipcMain.handle('web3:connect', (event, address) => {
     console.log("ADDED :2 to handshakes under ", data.initiator, " value = ", obj)
     mainWindow.webContents.send('handshake-initiated', data);
   });
-  listener.on('accepted', (data) => {
+  handshakeListener.on('accepted', (data) => {
     // Alice part : 4
     // calculating shared secret can be done now
     console.log("DATA::::4 = ", data)
@@ -109,7 +115,35 @@ ipcMain.handle('web3:connect', (event, address) => {
     console.log("ADDED :4 to connections under ", data.recipient, " value = ", obj);
     //
     mainWindow.webContents.send('handshake-accepted', data);
+    mainWindow.webContents.send('debug-secret', sharedSecret)
   });
+  messageListener = new MessageListener(messageContract, connectedAddress.Address);
+  messageListener.on('message', (event) => {
+    const con = connections.get(event.from)
+    if (!con) {
+      console.log(`Connection : ${event.from} is nil!`)
+      return
+    }
+    const decrypted = decryptMessage(event, con.sharedSecret);
+    if (decrypted.error) {
+      console.log("decryptMessage returns an error: ", decrypted.error)
+      return
+    }
+    const msgArray = messages.get(event.from)
+    const msg = {
+      address: event.from,
+      fromOtherSide: true,
+      date: new Date(),
+      message: decrypted.message,
+    }
+    if (!msgArray) {
+      messages.set(event.from, [msg])
+    } else {
+      msgArray.push(msg)
+      messages.set(event.from, msgArray);
+    }
+    mainWindow.webContents.send('updateui-message-append', msg);
+  })
   keyPair = genKeyPair()
   console.log('Keypair Generated:', keyPair);
 })
@@ -178,6 +212,45 @@ ipcMain.on('accept-handshake', async (_event, initiatorAddress) => {
   console.log("sharedSecret = ", sharedSecret)
   console.log("ADDED :3 to connections under ", initiatorAddress, " value = ", obj);
   mainWindow.webContents.send('updateui-accept-handshake', initiatorAddress);
+  mainWindow.webContents.send('debug-secret', sharedSecret)
+});
+
+ipcMain.on('select-message-box', async (_event, address) => {
+  selectedAddress = address
+  mainWindow.webContents.send('updateui-setup-message-box', address)
+})
+
+ipcMain.on('send-message', async (_event, plaintext) => {
+  if (!selectedAddress) {
+    console.log('No selected address to send a message.');
+    return;
+  }
+
+  // Placeholder for your message sending logic
+  const con = connections.get(selectedAddress)
+  if (!con) {
+    console.log(`Connection with ${selectedAddress} is null`)
+    return
+  }
+  const encrypted = encryptMessage(plaintext, con.sharedSecret);
+  const message = `0x${encrypted.message}`
+  const iv = `0x${encrypted.iv}`
+  const authTag = `0x${encrypted.authTag}`
+  messageContract.methods.sendMessage(selectedAddress, message, iv, authTag).send({ from: connectedAddress.Address });;
+
+  // Append message to 'messages' Map
+  const msgArray = messages.get(selectedAddress) || [];
+  const msg = {
+    address: selectedAddress,
+    fromOtherSide: false,
+    date: new Date(),
+    message: plaintext,
+  }
+  msgArray.push(msg);
+  messages.set(selectedAddress, msgArray);
+
+  // Notify renderer to append the new message
+  mainWindow.webContents.send('updateui-message-append', msg);
 });
 
 function genKeyPair() {

@@ -1,24 +1,95 @@
 :root {
   color-scheme: light dark;
+  --input-height: 40px; /* Set a variable for the input and button height */
 }
 
+/* General styles */
+body { margin: 20px; font-family: Arial, sans-serif; }
+input[type="text"], button {
+  height: var(--input-height);
+  padding: 0 10px;
+  border-radius: 5px;
+  border: 1px solid #aaa;
+}
+input[type="text"] {
+  flex-grow: 1;
+}
+.handshake-initiate {
+  display: flex;
+  gap: 10px;
+}
+.section {
+  border: 1px solid #888;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.section-headline {
+  font-size: 1.2em;
+  margin-bottom: 15px;
+}
+.message-action-buttons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.messages-display {
+  border: 1px solid #888;
+  height: 200px;
+  padding: 10px;
+  overflow-y: auto;
+}
+.my-message, .recipient-message {
+  margin-bottom: 10px;
+  padding: 5px;
+  border-radius: 5px;
+  max-width: 70%;
+}
+.my-message { background-color: #daf1da; align-self: flex-end; }
+.recipient-message { background-color: #f1f1f1; align-self: flex-start; }
+
+/* Dark theme styles */
 @media (prefers-color-scheme: dark) {
   body { background: #333; color: white; }
-  button { background-color: #555; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; }
+  .section { border-color: #555; }
+  input[type="text"], button { background: #555; color: white; border-color: #777; }
   button:hover { background-color: #777; }
+  .my-message { background-color: #467a46; }
+  .recipient-message { background-color: #555; }
 }
 
+/* Light theme styles */
 @media (prefers-color-scheme: light) {
   body { background: #ddd; color: black; }
-  button { background-color: #eee; color: black; border: none; padding: 10px; border-radius: 5px; cursor: pointer; }
+  .section { border-color: #aaa; }
+  input[type="text"], button { background: #eee; color: black; border-color: #ccc; }
   button:hover { background-color: #ccc; }
+  .my-message { background-color: #c5ecc5; }
+  .recipient-message { background-color: #f0f0f0; }
 }
 
-ul {
-  list-style-type: none;
-  padding: 0;
+.messages-display {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
 }
 
-li {
+.my-message, .recipient-message {
+  max-width: 70%;
+  padding: 5px 10px;
   margin-bottom: 10px;
+  border-radius: 8px;
+  word-wrap: break-word;
 }
+
+.my-message {
+  align-self: flex-start;
+  background-color: #daf1da;
+  color: #000;
+}
+
+.recipient-message {
+  align-self: flex-end;
+  background-color: #f1f1f1;
+  color: #000;
+}
+
